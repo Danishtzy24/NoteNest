@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Notepad</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            transition: background 0.3s ease;
+        }
+
+        .container {
+            max-width: none; /* Remove max-width to allow expansion */
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            backdrop-filter: blur(5px);
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            resize: both; /* Allow resizing */
+            overflow: auto; /* Required for resize */
+            width: 800px; /* Default width */
+        }
+
+        .toolbar {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .toolbar button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .toolbar button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .toolbar button.active {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #editor {
+            flex: 1;
+            width: 100%;
+            min-height: 400px;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.5;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border: none;
+            outline: none;
+            overflow-y: auto;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            resize: vertical; /* Allow vertical resizing */
+        }
+
+        /* History Panel Styles */
+        .history-panel {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            backdrop-filter: blur(10px);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            transition: left 0.3s ease;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .history-panel.open {
+            left: 0;
+        }
+
+        .history-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .save-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            z-index: 1001;
+            display: none;
+        }
+
+        .save-dialog.open {
+            display: block;
+        }
+
+        .save-dialog input {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .save-dialog button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1000;
+        }
+
+        .overlay.open {
+            display: block;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            transition: background 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            backdrop-filter: blur(5px);
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .toolbar button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .toolbar button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .toolbar button.active {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #editor {
+            flex: 1;
+            width: 100%;
+            min-height: 400px;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.5;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border: none;
+            outline: none;
+            overflow-y: auto;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        #editor:focus {
+            outline: none;
+        }
+
+        #editor p {
+            margin-bottom: 1em;
+        }
+
+        .settings-panel {
+            position: fixed;
+            right: -300px;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            backdrop-filter: blur(10px);
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            transition: right 0.3s ease;
+            z-index: 1000;
+        }
+
+        .settings-panel.open {
+            right: 0;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .settings-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: calc(100% - 60px);
+            overflow-y: auto;
+        }
+
+        .settings-group {
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .settings-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .settings-group select,
+        .settings-group input:not([type="file"]) {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .background-preview {
+            width: 100%;
+            height: 100px;
+            border-radius: 4px;
+            margin-top: 10px;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .color-palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .color-option {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+
+        .close-settings {
+            cursor: pointer;
+            padding: 5px;
+            font-size: 20px;
+        }
+
+        .upload-button {
+            display: inline-block;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .upload-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+
+            #editor {
+                min-height: 300px;
+            }
+
+            .settings-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .settings-panel.open {
+                right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notepad</title>
+    <style>
+        /* Your styles here */
+    </style>
+</head>
+<body>
+    <div class="container fade-in">
+        <div class="toolbar">
+            <button onclick="formatText('bold')" title="Bold"><strong>B</strong></button>
+            <button onclick="formatText('italic')" title="Italic"><em>I</em></button>
+            <button onclick="toggleSettings()" title="Settings">⚙️</button>
+            <button onclick="saveDocument()" title="Save">💾</button>
+            <button onclick="toggleHistory()" title="History">📁</button>
+        </div>
+        <div contenteditable="true" id="editor"></div>
+    </div>
+
+    <div class="history-panel" id="historyPanel">
+        <div class="settings-header">
+            <h3>Document History</h3>
+            <span class="close-settings" onclick="toggleHistory()">×</span>
+        </div>
+        <div id="historyList"></div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="save-dialog" id="saveDialog">
+        <h3>Save Document</h3>
+        <input type="text" id="documentName" placeholder="Enter document name">
+        <button onclick="confirmSave()">Save</button>
+        <button onclick="closeSaveDialog()">Cancel</button>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h3>Settings</h3>
+            <span class="close-settings" onclick="toggleSettings()">×</span>
+        </div>
+        <div class="settings-content">
+            <div class="settings-group">
+                <label>Background Image</label>
+                <div class="background-preview" id="bgPreview"></div>
+                <label class="upload-button">
+                    Upload Background
+                    <input type="file" id="bgImage" accept="image/*" onchange="handleBackgroundImage(this)" style="display: none;">
+                </label>
+            </div>
+            <div class="settings-group">
+                <label>Font Family</label>
+                <select id="fontFamily" onchange="updateFont(this.value)">
+                    <option value="Arial">Arial</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <label>Font Size</label>
+                <input type="range" min="12" max="24" value="14" onchange="updateFontSize(this.value)">
+                <span id="fontSizeValue">14px</span>
+            </div>
+            <div class="settings-group">
+                <label>Transparency</label>
+                <input type="range" min="0" max="100" value="90" onchange="updateTransparency(this.value)">
+            </div>
+            <div class="settings-group">
+                <label>Text Color</label>
+                <input type="color" id="textColor" onchange="updateTextColor(this.value)">
+                <div class="color-palette">
+                    <div class="color-option" style="background: #000000" onclick="updateTextColor('#000000')"></div>
+                    <div class="color-option" style="background: #ffffff" onclick="updateTextColor('#ffffff')"></div>
+                    <div class="color-option" style="background: #ff0000" onclick="updateTextColor('#ff0000')"></div>
+                    <div class="color-option" style="background: #00ff00" onclick="updateTextColor('#00ff00')"></div>
+                    <div class="color-option" style="background: #0000ff" onclick="updateTextColor('#0000ff')"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dominantColor = 'rgba(255, 255, 255, 0.1)';
+
+        function formatText(command, event) {
+            document.execCommand(command, false, null);
+            document.getElementById('editor').focus();
+            event.target.classList.add('active');
+            setTimeout(() => event.target.classList.remove('active'), 200);
+        }
+
+        function handleBackgroundImage(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.body.style.backgroundImage = `url(${e.target.result})`;
+                    document.body.style.backgroundSize = 'cover';
+                    document.body.style.backgroundPosition = 'center';
+                    document.body.style.backgroundRepeat = 'no-repeat';
+                    
+                    document.getElementById('bgPreview').style.backgroundImage = `url(${e.target.result})`;
+                    
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        let r = 0, g = 0, b = 0;
+                        
+                        for (let i = 0; i < data.length; i += 4) {
+                            r += data[i];
+                            g += data[i + 1];
+                            b += data[i + 2];
+                        }
+                        
+                        r = Math.floor(r / (data.length / 4));
+                        g = Math.floor(g / (data.length / 4));
+                        b = Math.floor(b / (data.length / 4));
+                        
+                        dominantColor = `rgba(${r}, ${g}, ${b}, 0.1)`;
+                        updateUIColors(r, g, b);
+                        
+                        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                        const textColor = brightness > 128 ? '#000000' : '#ffffff';
+                        updateTextColor(textColor);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateUIColors(r, g, b) {
+            const elements = document.querySelectorAll('.settings-group, .toolbar, #editor');
+            elements.forEach(el => {
+                el.style.background = `rgba(${r}, ${g}, ${b}, 0.1)`;
+            });
+            
+            const buttons = document.querySelectorAll('button, select, input:not([type="range"])');
+            buttons.forEach(btn => {
+                btn.style.background = `rgba(${r}, ${g}, ${b}, 0.2)`;
+            });
+        }
+
+        function updateTransparency(value) {
+            const opacity = value / 100;
+            const elements = document.querySelectorAll('.settings-group, .toolbar, #editor');
+            elements.forEach(el => {
+                el.style.background = dominantColor.replace(/[\d.]+\)$/, `${opacity})`);
+            });
+        }
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('open');
+        }
+
+        function updateFont(fontFamily) {
+            document.getElementById('editor').style.fontFamily = fontFamily;
+        }
+
+        function updateFontSize(size) {
+            document.getElementById('editor').style.fontSize = `${size}px`;
+            document.getElementById('fontSizeValue').textContent = `${size}px`;
+        }
+
+        function updateTextColor(color) {
+            document.getElementById('editor').style.color = color;
+            document.getElementById('textColor').value = color;
+        }
+
+        updateTransparency(90);
+
+        function saveDocument() {
+            document.getElementById('saveDialog').classList.add('open');
+            document.getElementById('overlay').classList.add('open');
+        }
+
+        function closeSaveDialog() {
+            document.getElementById('saveDialog').classList.remove('open');
+            document.getElementById('overlay').classList.remove('open');
+        }
+
+        function confirmSave() {
+            const name = document.getElementById('documentName').value;
+            const content = document.getElementById('editor').innerHTML;
+            const timestamp = new Date().toLocaleString();
+
+            const documents = JSON.parse(localStorage.getItem('notepad_documents') || '[]');
+            documents.push({ name, content, timestamp });
+
+            localStorage.setItem('notepad_documents', JSON.stringify(documents));
+            loadHistory();
+            closeSaveDialog();
+        }
+
+        function loadHistory() {
+            const documents = JSON.parse(localStorage.getItem('notepad_documents') || '[]');
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            documents.reverse().forEach(doc => {
+                const docItem = document.createElement('div');
+                docItem.classList.add('history-item');
+                docItem.innerHTML = `<strong>${doc.name}</strong> <small>${doc.timestamp}</small>`;
+                docItem.addEventListener('click', () => loadDocument(doc));
+                historyList.appendChild(docItem);
+            });
+        }
+
+        function loadDocument(doc) {
+            document.getElementById('editor').innerHTML = doc.content;
+            document.getElementById('historyPanel').classList.remove('open');
+        }
+
+        function toggleHistory() {
+            document.getElementById('historyPanel').classList.toggle('open');
+            loadHistory();
+        }
+    </script>
+</body>
+</html>
